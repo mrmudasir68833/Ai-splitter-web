@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SRT Splitter & Editor</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 </head>
 <body class="bg-gray-50 text-gray-800">
   <div class="max-w-4xl mx-auto p-6">
@@ -21,13 +21,20 @@
         <label class="block mb-2 font-medium">Upload SRT File:</label>
         <label class="cursor-pointer px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 inline-block">
           Choose File
-          <input type="file" id="editorFileInput" accept=".srt" class="hidden"/>
+          <input type="file" id="editorFileInput" accept=".srt" class="hidden" />
         </label>
         <div id="editorUploadedFileName" class="mt-2 font-bold text-gray-700"></div>
 
         <textarea id="editorText" class="w-full h-60 p-3 border rounded mt-4" placeholder="Edit .srt content here..."></textarea>
 
-        <input type="text" id="editorTitle" placeholder="Enter custom filename (optional)" class="mt-3 p-2 border rounded w-full"/>
+        <input type="text" id="editorTitle" placeholder="Enter custom filename (optional)" class="mt-3 p-2 border rounded w-full" />
+
+        <!-- Format selector -->
+        <label class="block mt-4 mb-1 font-medium">Select Format</label>
+        <select id="editorFormat" class="w-full p-2 border rounded">
+          <option value="srt">SRT</option>
+          <option value="txt">TXT</option>
+        </select>
       </div>
       <button onclick="clearEditor()" class="px-4 py-2 bg-yellow-300 rounded mr-2">New File</button>
       <button onclick="downloadEditorSrt()" class="px-4 py-2 bg-green-300 rounded">Download</button>
@@ -39,11 +46,11 @@
         <label class="block mb-2 font-medium">Upload SRT File:</label>
         <label class="cursor-pointer px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 inline-block">
           Choose File
-          <input type="file" id="fileInput" accept=".srt" class="hidden"/>
+          <input type="file" id="fileInput" accept=".srt" class="hidden" />
         </label>
         <div id="uploadedFileName" class="mt-2 font-bold text-gray-700"></div>
         <textarea id="srtInput" class="w-full h-60 p-3 border rounded mt-4" placeholder="Paste .srt file content here..."></textarea>
-        <input type="number" id="lineCount" placeholder="Blocks per part" class="mt-2 p-2 border rounded w-full"/>
+        <input type="number" id="lineCount" placeholder="Blocks per part" class="mt-2 p-2 border rounded w-full" />
       </div>
       <button onclick="clearSplitter()" class="px-4 py-2 bg-yellow-300 rounded mr-2">New File</button>
       <button onclick="splitSrt()" class="px-4 py-2 bg-green-300 rounded">Split</button>
@@ -157,6 +164,7 @@
       editorText.value = "";
       editorUploadedFileName.textContent = "";
       editorTitle.value = "";
+      document.getElementById("editorFormat").value = "srt";
     }
 
     function downloadEditorSrt() {
@@ -165,8 +173,10 @@
         alert("Editor is empty.");
         return;
       }
-      const customTitle = editorTitle.value.trim();
-      const filename = customTitle ? `${customTitle}.srt` : "edited_subtitle.srt";
+      const customTitle = editorTitle.value.trim() || "edited_subtitle";
+      const format = document.getElementById("editorFormat").value;
+      const extension = format === "txt" ? ".txt" : ".srt";
+      const filename = `${customTitle}${extension}`;
 
       const blob = new Blob([content], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
