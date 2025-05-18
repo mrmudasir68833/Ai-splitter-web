@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SRT Splitter & Editor</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"/>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <div class="max-w-4xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6 text-center">SRT Splitter & Editor</h1>
+
+    <div class="flex justify-center space-x-4 mb-6">
+      <button id="tabEditor" class="tab-active px-4 py-2 rounded bg-blue-200">Editor</button>
+      <button id="tabSplitter" class="px-4 py-2 rounded bg-gray-200">Splitter</button>
+    </div>
+
+    <!-- Editor Panel -->
+    <section id="editorPanel">
+      <div class="mb-4">
+        <label class="block mb-2 font-medium">Upload SRT File:</label>
+        <label class="cursor-pointer px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 inline-block">
+          Choose File
+          <input type="file" id="editorFileInput" accept=".srt" class="hidden"/>
+        </label>
+        <div id="editorUploadedFileName" class="mt-2 font-bold text-gray-700"></div>
+
+        <textarea id="editorText" class="w-full h-60 p-3 border rounded mt-4" placeholder="Edit .srt content here..."></textarea>
+
+        <input type="text" id="editorTitle" placeholder="Enter custom filename (optional)" class="mt-3 p-2 border rounded w-full"/>
+      </div>
+      <button onclick="clearEditor()" class="px-4 py-2 bg-yellow-300 rounded mr-2">New File</button>
+      <button onclick="downloadEditorSrt()" class="px-4 py-2 bg-green-300 rounded">Download</button>
+    </section>
+
+    <!-- Splitter Panel -->
+    <section id="splitterPanel" class="hidden">
+      <div class="mb-4">
+        <label class="block mb-2 font-medium">Upload SRT File:</label>
+        <label class="cursor-pointer px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600 inline-block">
+          Choose File
+          <input type="file" id="fileInput" accept=".srt" class="hidden"/>
+        </label>
+        <div id="uploadedFileName" class="mt-2 font-bold text-gray-700"></div>
+        <textarea id="srtInput" class="w-full h-60 p-3 border rounded mt-4" placeholder="Paste .srt file content here..."></textarea>
+        <input type="number" id="lineCount" placeholder="Blocks per part" class="mt-2 p-2 border rounded w-full"/>
+      </div>
+      <button onclick="clearSplitter()" class="px-4 py-2 bg-yellow-300 rounded mr-2">New File</button>
+      <button onclick="splitSrt()" class="px-4 py-2 bg-green-300 rounded">Split</button>
+      <div id="partsContainer" class="mt-6 grid gap-4"></div>
+    </section>
+  </div>
+
+  <script>
+    // Tab switching
+    const tabEditor = document.getElementById("tabEditor");
+    const tabSplitter = document.getElementById("tabSplitter");
+    const editorPanel = document.getElementById("editorPanel");
+    const splitterPanel = document.getElementById("splitterPanel");
+
+    tabEditor.addEventListener("click", () => {
+      tabEditor.classList.add("bg-blue-200");
+      tabSplitter.classList.remove("bg-blue-200");
+      splitterPanel.classList.add("hidden");
+      editorPanel.classList.remove("hidden");
+    });
+
+    tabSplitter.addEventListener("click", () => {
+      tabSplitter.classList.add("bg-blue-200");
+      tabEditor.classList.remove("bg-blue-200");
+      editorPanel.classList.add("hidden");
+      splitterPanel.classList.remove("hidden");
+    });
+
+    // Splitter logic
+    const fileInput = document.getElementById("fileInput");
+    const srtInput = document.getElementById("srtInput");
+    const lineCount = document.getElementById("lineCount");
+    const partsContainer = document.getElementById("partsContainer");
+    const uploadedFileName = document.getElementById("uploadedFileName");
+    let originalFileName = "part";
+
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith(".srt")) {
+        alert("Only .srt files are supported.");
+        return;
+      }
+      originalFileName = file.name.replace(/\.srt$/i, "");
+      uploadedFileName.textContent = `Uploaded: ${file.name}`;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        srtInput.value = e.target.result;
+      };
+      reader.readAsText(file);
+    });
+
+    function splitSrt() {
+      const srtText = srtInput.value.trim();
+      const count = parseInt(lineCount.value);
+
+      if (!srtText || isNaN(count) || count <= 0) {
+        alert("Enter a valid block count.");
+        return;
+      }
+
+      const blocks = srtText.split(/(?:\r?\n){2,}/).filter(Boolean);
+      const totalParts = Math.ceil(blocks.length / count);
+      partsContainer.innerHTML = "";
+
+      for (let i = 0; i < totalParts; i++) {
+        const partBlocks = blocks.slice(i * count, (i + 1) * count);
+        const content = partBlocks.join("\n\n");
+        const blob = new Blob([content], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const partName = `${originalFileName}_part${i + 1}.srt`;
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = partName;
+        link.textContent = `Download ${partName}`;
+        link.className = "block text-blue-600 hover:underline mt-2";
+        partsContainer.appendChild(link);
+      }
+    }
+
+    function clearSplitter() {
+      srtInput.value = "";
+      lineCount.value = "";
+      partsContainer.innerHTML = "";
+      uploadedFileName.textContent = "";
+    }
+
+    // Editor logic
+    const editorFileInput = document.getElementById("editorFileInput");
+    const editorUploadedFileName = document.getElementById("editorUploadedFileName");
+    const editorText = document.getElementById("editorText");
+    const editorTitle = document.getElementById("editorTitle");
+
+    editorFileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith(".srt")) {
+        alert("Only .srt files are supported.");
+        return;
+      }
+      editorUploadedFileName.textContent = `Uploaded: ${file.name}`;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        editorText.value = e.target.result;
+      };
+      reader.readAsText(file);
+    });
+
+    function clearEditor() {
+      editorText.value = "";
+      editorUploadedFileName.textContent = "";
+      editorTitle.value = "";
+    }
+
+    function downloadEditorSrt() {
+      const content = editorText.value.trim();
+      if (!content) {
+        alert("Editor is empty.");
+        return;
+      }
+      const customTitle = editorTitle.value.trim();
+      const filename = customTitle ? `${customTitle}.srt` : "edited_subtitle.srt";
+
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
